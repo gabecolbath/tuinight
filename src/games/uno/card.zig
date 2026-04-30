@@ -78,7 +78,7 @@ pub const Card = struct {
         }
 
         pub fn tag(self: Face) Tag {
-            return std.meta.Tag(self);
+            return std.meta.activeTag(self);
         }
 
         pub fn eql(self: Face, other: Face) bool {
@@ -106,8 +106,8 @@ pub const Card = struct {
 
     pub fn number(num: u8, color: Color) Card {
         return Card{
-            .val = num,
-            .face = .{ .number = num },
+            .value = num,
+            .face = .{ .number = .{ .val = num } },
             .color = color,
         };
     }
@@ -115,30 +115,30 @@ pub const Card = struct {
     pub fn skip(color: Color) Card {
         return Card{
             .value = ACTION_CARD_VALUE,
-            .face = .skip,
+            .face = .action_skip,
             .color = color,
         };
     }
 
     pub fn reverse(color: Color) Card {
         return Card{
-            .val = ACTION_CARD_VALUE,
-            .face = .reverse,
+            .value = ACTION_CARD_VALUE,
+            .face = .action_reverse,
             .color = color,
         };
     }
 
     pub fn draw(draws: u8, color: Color) Card {
         return Card{
-            .val = ACTION_CARD_VALUE,
-            .face = .{ .draw = draws },
+            .value = ACTION_CARD_VALUE,
+            .face = .{ .action_draw = .{ .penalty = draws } },
             .color = color,
         };
     }
 
     pub fn wild() Card {
         return Card{
-            .val = WILD_CARD_VALUE,
+            .value = WILD_CARD_VALUE,
             .face = .wild,
             .color = .none,
         };
@@ -146,13 +146,21 @@ pub const Card = struct {
 
     pub fn wildDraw(draws: u8) Card {
         return Card{
-            .val = WILD_CARD_VALUE,
-            .face = .{ .wild_draw = draws },
+            .value = WILD_CARD_VALUE,
+            .face = .{ .wild_draw = .{ .penalty = draws } },
             .color = .none,
         };
     }
 
     pub fn eql(self: Card, other: Card) bool {
         return std.meta.eql(self, other);
+    }
+
+    pub fn print(self: *const Card) void {
+        std.debug.print("{d: <3}\t{s: <15}\t{s: <6}\n", .{
+            self.value,
+            @tagName(self.face),
+            @tagName(self.color),
+        });
     }
 };

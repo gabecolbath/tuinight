@@ -30,11 +30,11 @@ pub const Hand = struct {
         };
     }
 
-    pub fn count(self: *Hand) usize {
+    pub fn count(self: *const Hand) usize {
         return self.cards.items.len;
     }
 
-    pub fn peek(self: *Hand, pos: usize) Card {
+    pub fn peek(self: *const Hand, pos: usize) Card {
         return self.cards.items[pos];
     }
 
@@ -44,5 +44,13 @@ pub const Hand = struct {
 
     pub fn append(self: *Hand, card: Card) void {
         self.cards.appendAssumeCapacity(card);
+    }
+
+    pub fn print(self: *const Hand, lbl: []const u8) void {
+        std.debug.print("{s}\n", .{lbl});
+        for (self.cards.items, 0..) |card, i| {
+            std.debug.print("\t{d: <2}\t", .{i});
+            card.print();
+        }
     }
 };

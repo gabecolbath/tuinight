@@ -1,5 +1,6 @@
 const std = @import("std");
 const uuid = @import("uuid");
+const assert = std.debug.assert;
 const lib = struct {
     const card = @import("card.zig");
     const deck = @import("deck.zig");
@@ -8,7 +9,7 @@ const lib = struct {
 
 
 const MAX_PLAYER_COUNT = 8;
-const DEAL_SIZE = 7;
+const DEAL_COUNT = 7;
 
 
 const Allocator = std.mem.Allocator;
@@ -16,9 +17,10 @@ const Arena = std.heap.ArenaAllocator;
 const List = std.ArrayList;
 const Map = std.AutoArrayHashMapUnmanaged;
 const Uuid = uuid.Uuid;
-const Card = lib.card.Card;
-const Deck = lib.deck.Deck;
-const Hand = lib.hand.Hand;
+
+pub const Card = lib.card.Card;
+pub const Deck = lib.deck.Deck;
+pub const Hand = lib.hand.Hand;
 
 
 pub const Game = struct {
@@ -37,6 +39,7 @@ pub const Game = struct {
     opts: Options,
     decks: Decks,
     hands: Map(Uuid, Hand),
+    started: bool = false,
 
 
     pub fn init(allocator: Allocator, opts: Options) !Game {
@@ -63,40 +66,30 @@ pub const Game = struct {
         self.arena.deinit();
     }
 
-    pub fn draw(self: *Game, player: Uuid) void {
-        var hand = self.fetchHand(player) orelse return;
+    pub fn start(self: *Game) void {
+        self.started = true;
 
+        self.decks.main.shuffle();
+        const first = self.decks.main.findNextTag(.number).?;
+        self.decks.main.burn(&self.decks.discard, first, .above);
+
+        for (self.hands.values()) |*hand| self.deal(hand);
+    }
+
+    pub fn draw(self: *Game, hand: *Hand) void {
+        assert(self.started);
         const drawn = self.decks.main.pick(.top);
         hand.append(drawn);
-
-        self.updateHand(player, hand);
     }
 
-    pub fn play(self: *Game, player: Uuid, card: usize) void {
-        var hand = self.fetchHand(player) orelse return;
-
-        const played = hand.pick(card);
-        self.decks.discard.insert(played, .top);
-
-        self.updateHand(player, hand);
+    pub fn play(self: *Game, hand: *Hand, pos: usize) void {
+        assert(self.started);
+        const played = hand.pick(pos);
+        self.decks.discard.insert(played, .above);
     }
 
-    pub fn deal(self: *Game, player: Uuid) void {
-        var hand = self.fetchHand(player) orelse return;
-
-        for (0..DEAL_SIZE) |_| {
-            const dealt = self.decks.main.pick(.top);
-            hand.append(dealt);
-        }
-
-        self.updateHand(player, hand);
-    }
-
-    fn fetchHand(self: *Game, player: Uuid) ?Hand {
-        return self.hands.get(player);
-    }
-
-    fn updateHand(self: *Game, player: Uuid, hand: Hand) void {
-        self.hands.putAssumeCapacity(player, hand);
+    pub fn deal(self: *Game, hand: *Hand) void {
+        assert(self.started);
+        for (0..DEAL_COUNT) |_| self.draw(hand);
     }
 };
